@@ -1,0 +1,42 @@
+version: '2'
+services:
+  mongo-datavolume:
+    image: busybox
+    entrypoint:
+    - /bin/true
+    network_mode: none
+    volumes:
+    - /data/db
+    labels:
+      io.rancher.scheduler.affinity:host_label: ''
+      io.rancher.container.start_once: 'true'
+      io.rancher.container.hostname_override: container_name
+  mongo-cluster:
+    image: mongo:3.2
+    environment:
+      MONGO_SERVICE_NAME: mongo-cluster1
+    entrypoint:
+    - /opt/rancher/bin/entrypoint.sh
+    tty: true
+    mem_reservation: 10485760
+    volumes_from:
+    - mongo-base
+    - mongo-datavolume
+    command:
+    - --replSet
+    - rs0
+    labels:
+      io.rancher.sidekicks: mongo-datavolume,mongo-base
+      io.rancher.container.hostname_override: container_name
+      io.rancher.scheduler.affinity:container_label_ne: io.rancher.stack_service.name=$${stack_name}/$${service_name}
+  mongo-base:
+    image: rancher/mongodb-conf:v0.1.0
+    stdin_open: true
+    entrypoint:
+    - /bin/true
+    network_mode: none
+    tty: true
+    labels:
+      io.rancher.scheduler.affinity:host_label: ''
+      io.rancher.container.start_once: 'true'
+      io.rancher.container.hostname_override: container_name
